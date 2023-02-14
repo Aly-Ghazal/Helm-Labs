@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pythonapp.fullname" . }}
+  annotations:
+    networking.gke.io/load-balancer-type: "External"
+spec:
+  type: {{ .Values.service.type }}
+  externalTrafficPolicy: Cluster
+  selector:
+    app: python
+  ports:
+  - name: tcp-port
+    protocol: TCP
+    port: {{ .Values.service.port }}
+    targetPort: 8000
+
+---
+apiVersion: v1 
+kind: Service 
+metadata:
+  name: {{ include "pythonapp.fullname" . }}
+spec:
+  # Expose the service on a static port on each node
+  # so that we can access the service from outside the cluster 
+  type: {{ .Values.service.type }}
+
+  # When the node receives a request on the static port (30163)
+  # "select pods with the label 'app' set to 'echo-hostname'"
+  # and forward the request to one of them
+  selector:
+    {{- include "pythonapp.selectorLabels" . | nindent 8 }}
+
+  ports:
+    # Three types of ports for a service
+    # nodePort - a static port assigned on each the node
+    # port - port exposed internally in the cluster
+    # targetPort - the container port to send requests to
+    - nodePort: {{ .Values.service.nodePort }}
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
